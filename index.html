@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    #btnHablar {
+      padding: 12px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 1px solid #999;
+      cursor: pointer;
+    }
+
+    .activo {
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Bitácora por voz</h2>
+
+<button id="btnHablar" onclick="iniciar()">🎤 Hablar</button>
+
+<p id="estado">Presione el botón para iniciar.</p>
+<p id="texto"></p>
+
+<script>
+let reconocimiento;
+let escuchando = false;
+
+function iniciar() {
+  const boton = document.getElementById("btnHablar");
+  const estado = document.getElementById("estado");
+
+  if (escuchando) {
+    reconocimiento.stop();
+    escuchando = false;
+    boton.classList.remove("activo");
+    boton.innerHTML = "🎤 Hablar";
+    estado.innerHTML = "Micrófono detenido.";
+    return;
+  }
+
+  if (!('webkitSpeechRecognition' in window)) {
+    estado.innerHTML = "Este navegador no soporta reconocimiento de voz. Use Google Chrome.";
+    return;
+  }
+
+  reconocimiento = new webkitSpeechRecognition();
+  reconocimiento.lang = "es-ES";
+  reconocimiento.continuous = false;
+  reconocimiento.interimResults = false;
+
+  reconocimiento.onstart = function() {
+    escuchando = true;
+    boton.classList.add("activo");
+    boton.innerHTML = "🟢 Escuchando...";
+    estado.innerHTML = "Hable ahora...";
+  };
+
+  reconocimiento.onresult = function(event) {
+    let texto = event.results[0][0].transcript;
+    document.getElementById("texto").innerHTML = "Texto reconocido: " + texto;
+
+    procesarTexto(texto);
+  };
+
+  reconocimiento.onerror = function(event) {
+    estado.innerHTML = "Error del micrófono: " + event.error;
+    alert("Error del micrófono: " + event.error);
+    boton.classList.remove("activo");
+    boton.innerHTML = "🎤 Hablar";
+    escuchando = false;
+  };
+
+  reconocimiento.onend = function() {
+    boton.classList.remove("activo");
+    boton.innerHTML = "🎤 Hablar";
+    escuchando = false;
+    estado.innerHTML = "Proceso finalizado.";
+  };
+
+  reconocimiento.start();
+}
+
+function procesarTexto(texto) {
+  try {
+    texto = texto.toLowerCase();
+
+    let piloto = texto.match(/piloto (.*?) salida/)[1].trim();
+    let kmSalida = parseInt(texto.match(/salida (\d+)/)[1]);
+    let kmEntrada = parseInt(texto.match(/entrada (\d+)/)[1]);
+    let proyecto = texto.match(/proyecto (\d+)/)[1];
+    let cliente = texto.match(/cliente (.*)/)[1].trim();
+
+    let datos = {
+      piloto: piloto,
+      kmSalida: kmSalida,
+      kmEntrada: kmEntrada,
+      proyecto: proyecto,
+      cliente: cliente
+    };
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        document.getElementById("estado").innerHTML = respuesta;
+      })
+      .guardarRegistro(datos);
+
+  } catch (error) {
+    document.getElementById("estado").innerHTML =
+      "No pude interpretar el mensaje. Use este formato:<br><br>" +
+      "Piloto Juan Pérez salida 152350 entrada 152420 proyecto 350 cliente Hospital Central";
+  }
+}
+</script>
+
+</body>
+</html>
