@@ -86,7 +86,7 @@ function iniciar() {
 
   reconocimiento.start();
 }
-
+/*
 function procesarTexto(texto) {
   try {
     texto = texto.toLowerCase();
@@ -117,6 +117,61 @@ function procesarTexto(texto) {
       "Piloto Juan Pérez salida 152350 entrada 152420 proyecto 350 cliente Hospital Central";
   }
 }
+*/
+
+function procesarTexto(texto) {
+
+  try {
+
+    texto = texto.toLowerCase();
+
+    let piloto =
+      texto.match(/piloto (.*?) salida/)[1].trim();
+
+    let kmSalida =
+      parseInt(texto.match(/salida (\d+)/)[1]);
+
+    let kmEntrada =
+      parseInt(texto.match(/entrada (\d+)/)[1]);
+
+    let proyecto =
+      texto.match(/proyecto (\w+)/)[1];
+
+    let cliente =
+      texto.match(/cliente (.*)/)[1].trim();
+
+    let datos = {
+      piloto: piloto,
+      kmSalida: kmSalida,
+      kmEntrada: kmEntrada,
+      proyecto: proyecto,
+      cliente: cliente
+    };
+
+    fetch(
+      "https://script.google.com/macros/s/AKfycbz7UwVf5BXAGurBzfw3peuhzdZ4B99rl6X3e-lkkL9qrsRHKGapkq9z2Jw8zHqvHblM/exec",
+      {
+        method: "POST",
+        body: JSON.stringify(datos)
+      }
+    )
+    .then(response => response.text())
+    .then(data => {
+
+      document.getElementById("estado").innerHTML =
+        "✅ Registro guardado correctamente";
+
+    });
+
+  }
+  catch(error){
+
+    document.getElementById("estado").innerHTML =
+      "❌ No pude interpretar la frase";
+
+  }
+}
+
 </script>
 
 </body>
