@@ -118,7 +118,7 @@ function procesarTexto(texto) {
   }
 }
 */
-
+/*
 function procesarTexto(texto) {
 
   try {
@@ -171,7 +171,51 @@ function procesarTexto(texto) {
 
   }
 }
+*/
+function procesarTexto(texto) {
+  try {
+    let original = texto;
+    texto = texto.toLowerCase();
 
+    texto = texto.replace("estará", "entrada");
+    texto = texto.replace("entrará", "entrada");
+    texto = texto.replace("kilómetros", "");
+    texto = texto.replace("kilometros", "");
+
+    let kmSalida = parseInt(texto.match(/salida (\d+)/)[1]);
+    let kmEntrada = parseInt(texto.match(/entrada (\d+)/)[1]);
+    let proyecto = texto.match(/proyecto\s*([a-z0-9]+)/)[1];
+    let cliente = texto.match(/cliente (.*)/)[1].trim();
+
+    let piloto = texto.split("salida")[0]
+      .replace("piloto", "")
+      .trim();
+
+    let datos = {
+      piloto: piloto,
+      kmSalida: kmSalida,
+      kmEntrada: kmEntrada,
+      proyecto: proyecto,
+      cliente: cliente
+    };
+
+    fetch("https://script.google.com/macros/s/AKfycbz7UwVf5BXAGurBzfw3peuhzdZ4B99rl6X3e-lkkL9qrsRHKGapkq9z2Jw8zHqvHblM/exec", {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify(datos)
+    });
+
+    document.getElementById("estado").innerHTML =
+      "✅ Registro enviado a Google Sheets";
+
+  } catch (error) {
+    document.getElementById("estado").innerHTML =
+      "❌ No pude interpretar la frase. Diga:<br><br>" +
+      "Germán Contreras salida 1500 entrada 1800 proyecto 300 cliente Buyer";
+  }
+}
+
+  
 </script>
 
 </body>
