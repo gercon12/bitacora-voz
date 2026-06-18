@@ -186,7 +186,6 @@ function iniciar() {
   reconocimiento.onstart = function() {
     escuchando = true;
     boton.classList.add("activo");
-
     boton.innerHTML = "🟢 Escuchando";
     estado.innerHTML = "Diga: " + nombrePaso(pasos[pasoActual]);
   };
@@ -229,7 +228,7 @@ function procesarPaso(texto) {
     let hora = interpretarHora(texto);
 
     if (!hora) {
-      mensaje("❌ No pude interpretar la hora de salida. Ejemplo: nueve y treinta am.");
+      mensaje("❌ No pude interpretar la hora de salida. Ejemplo: nueve y quince am.");
       return;
     }
 
@@ -239,7 +238,7 @@ function procesarPaso(texto) {
   if (paso === "salida") {
     let numero = extraerNumero(texto);
 
-    if (!numero) {
+    if (!numero && numero !== 0) {
       mensaje("❌ No se detectó kilometraje de salida.");
       return;
     }
@@ -251,7 +250,7 @@ function procesarPaso(texto) {
     let hora = interpretarHora(texto);
 
     if (!hora) {
-      mensaje("❌ No pude interpretar la hora de entrada. Ejemplo: cinco y quince pm.");
+      mensaje("❌ No pude interpretar la hora de entrada. Ejemplo: cinco y treinta pm.");
       return;
     }
 
@@ -261,7 +260,7 @@ function procesarPaso(texto) {
   if (paso === "entrada") {
     let numero = extraerNumero(texto);
 
-    if (!numero) {
+    if (!numero && numero !== 0) {
       mensaje("❌ No se detectó kilometraje de entrada.");
       return;
     }
@@ -428,14 +427,16 @@ function consultarUltimoRegistro(placa) {
         "No se pudo consultar el último registro.";
     });
 }
-/*
-function extraerNumero(texto) {
-  let textoLimpio = limpiarTexto(texto);
 
-  let match = textoLimpio.match(/\d+/);
+function extraerNumero(texto) {
+  let original = texto.toLowerCase();
+
+  let match = original.match(/\d+/);
   if (match) return parseInt(match[0]);
 
-  let mapa = {
+  let limpio = normalizarConEspacios(original);
+
+  let unidades = {
     "cero": 0,
     "uno": 1,
     "una": 1,
@@ -454,175 +455,101 @@ function extraerNumero(texto) {
     "catorce": 14,
     "quince": 15,
     "dieciseis": 16,
+    "dieciséis": 16,
     "diecisiete": 17,
     "dieciocho": 18,
     "diecinueve": 19,
     "veinte": 20,
     "veintiuno": 21,
+    "veintiuna": 21,
     "veintidos": 22,
+    "veintidós": 22,
     "veintitres": 23,
+    "veintitrés": 23,
     "veinticuatro": 24,
     "veinticinco": 25,
     "veintiseis": 26,
+    "veintiséis": 26,
     "veintisiete": 27,
     "veintiocho": 28,
-    "veintinueve": 29,
+    "veintinueve": 29
+  };
+
+  let decenas = {
     "treinta": 30,
     "cuarenta": 40,
     "cincuenta": 50,
     "sesenta": 60
   };
 
-  
-  let partes = textoLimpio.split(/y/);
-  let total = 0;
+  if (unidades[limpio] !== undefined) return unidades[limpio];
+  if (decenas[limpio] !== undefined) return decenas[limpio];
 
-  for (let p of partes) {
-    p = p.trim();
-    if (mapa[p] !== undefined) total += mapa[p];
-  }
+  let partes = limpio.split(/\s+y\s+/);
 
-  return total > 0 ? total : null;
-}
+  if (partes.length === 2) {
+    let decena = decenas[partes[0]];
+    let unidad = unidades[partes[1]];
 
-*/
-
-function extraerNumero(texto) {
-  let textoLimpio = limpiarTexto(texto);
-
-  let match = textoLimpio.match(/\d+/);
-  if (match) return parseInt(match[0]);
-
-  let mapa = {
-    "cero": 0,
-    "uno": 1,
-    "una": 1,
-    "dos": 2,
-    "tres": 3,
-    "cuatro": 4,
-    "cinco": 5,
-    "seis": 6,
-    "siete": 7,
-    "ocho": 8,
-    "nueve": 9,
-    "diez": 10,
-    "once": 11,
-    "doce": 12,
-    "trece": 13,
-    "catorce": 14,
-    "quince": 15,
-    "dieciseis": 16,
-    "diecisiete": 17,
-    "dieciocho": 18,
-    "diecinueve": 19,
-    "veinte": 20,
-    "veintiuno": 21,
-    "veintidos": 22,
-    "veintitres": 23,
-    "veinticuatro": 24,
-    "veinticinco": 25,
-    "veintiseis": 26,
-    "veintisiete": 27,
-    "veintiocho": 28,
-    "veintinueve": 29,
-    "treinta": 30,
-    "treintaiuno": 31,
-    "treintayuno": 31,
-    "treintaiuna": 31,
-    "treintayuna": 31,
-    "treintaidos": 32,
-    "treintaydos": 32,
-    "treintaitres": 33,
-    "treintaytres": 33,
-    "treintaicuatro": 34,
-    "treintaycuatro": 34,
-    "treintaicinco": 35,
-    "treintaycinco": 35,
-    "treintaiseis": 36,
-    "treintayseis": 36,
-    "treintaisiete": 37,
-    "treintaysiete": 37,
-    "treintaiocho": 38,
-    "treintayocho": 38,
-    "treintainueve": 39,
-    "treintaynueve": 39,
-    "cuarenta": 40,
-    "cuarentaiuno": 41,
-    "cuarentayuno": 41,
-    "cuarentaidos": 42,
-    "cuarentaydos": 42,
-    "cuarentaitres": 43,
-    "cuarentaytres": 43,
-    "cuarentaicuatro": 44,
-    "cuarentaycuatro": 44,
-    "cuarentaicinco": 45,
-    "cuarentaycinco": 45,
-    "cuarentaiseis": 46,
-    "cuarentayseis": 46,
-    "cuarentaisiete": 47,
-    "cuarentaysiete": 47,
-    "cuarentaiocho": 48,
-    "cuarentayocho": 48,
-    "cuarentainueve": 49,
-    "cuarentaynueve": 49,
-    "cincuenta": 50,
-    "cincuentaiuno": 51,
-    "cincuentayuno": 51,
-    "cincuentaidos": 52,
-    "cincuentaydos": 52,
-    "cincuentaitres": 53,
-    "cincuentaytres": 53,
-    "cincuentaicuatro": 54,
-    "cincuentaycuatro": 54,
-    "cincuentaicinco": 55,
-    "cincuentaycinco": 55,
-    "cincuentaiseis": 56,
-    "cincuentayseis": 56,
-    "cincuentaisiete": 57,
-    "cincuentaysiete": 57,
-    "cincuentaiocho": 58,
-    "cincuentayocho": 58,
-    "cincuentainueve": 59,
-    "cincuentaynueve": 59,
-    "sesenta": 60
-  };
-
-  if (mapa[textoLimpio] !== undefined) {
-    return mapa[textoLimpio];
+    if (decena !== undefined && unidad !== undefined) {
+      return decena + unidad;
+    }
   }
 
   return null;
 }
 
-  
 function interpretarHora(texto) {
-  let textoLimpio = limpiarTexto(texto);
+  let original = texto.toLowerCase();
+  let limpio = normalizarConEspacios(original);
 
   let periodo = "";
 
   if (
-    textoLimpio.includes("am") ||
-    textoLimpio.includes("manana") ||
-    textoLimpio.includes("mañana")
+    limpio.includes(" am") ||
+    limpio.endsWith("am") ||
+    limpio.includes("a m") ||
+    limpio.includes("mañana") ||
+    limpio.includes("manana")
   ) {
     periodo = "AM";
   }
 
   if (
-    textoLimpio.includes("pm") ||
-    textoLimpio.includes("tarde") ||
-    textoLimpio.includes("noche")
+    limpio.includes(" pm") ||
+    limpio.endsWith("pm") ||
+    limpio.includes("p m") ||
+    limpio.includes("tarde") ||
+    limpio.includes("noche")
   ) {
     periodo = "PM";
   }
 
-  let numeros = textoLimpio.match(/\d+/g);
+  if (!periodo) {
+    return null;
+  }
+
+  limpio = limpio
+    .replace(/\bam\b/g, "")
+    .replace(/\bpm\b/g, "")
+    .replace(/\ba m\b/g, "")
+    .replace(/\bp m\b/g, "")
+    .replace(/\bde la mañana\b/g, "")
+    .replace(/\bde la manana\b/g, "")
+    .replace(/\bde la tarde\b/g, "")
+    .replace(/\bde la noche\b/g, "")
+    .replace(/\bmañana\b/g, "")
+    .replace(/\bmanana\b/g, "")
+    .replace(/\btarde\b/g, "")
+    .replace(/\bnoche\b/g, "")
+    .trim();
+
+  let numeros = limpio.match(/\d+/g);
 
   if (numeros && numeros.length >= 2) {
     let hora = parseInt(numeros[0]);
     let minuto = parseInt(numeros[1]);
 
-    if (!periodo) return null;
     if (hora < 1 || hora > 12) return null;
     if (minuto < 0 || minuto > 59) return null;
 
@@ -632,25 +559,32 @@ function interpretarHora(texto) {
   if (numeros && numeros.length === 1) {
     let hora = parseInt(numeros[0]);
 
-    if (!periodo) return null;
     if (hora < 1 || hora > 12) return null;
 
     return hora + ":00 " + periodo;
   }
 
-  textoLimpio = textoLimpio
-    .replace("am", "")
-    .replace("pm", "")
-    .replace("delamanana", "")
-    .replace("delatarde", "")
-    .replace("delanoche", "");
+  let hora = null;
+  let minuto = 0;
 
-  let partes = textoLimpio.split("y");
+  if (limpio.includes(" y ")) {
+    let partes = limpio.split(/\s+y\s+/);
+    hora = extraerNumero(partes[0]);
+    minuto = extraerNumero(partes[1]);
+  } else {
+    let palabras = limpio.split(/\s+/);
 
-  let hora = extraerNumero(partes[0] || "");
-  let minuto = partes.length > 1 ? extraerNumero(partes[1]) : 0;
+    if (palabras.length === 1) {
+      hora = extraerNumero(palabras[0]);
+      minuto = 0;
+    }
 
-  if (!periodo) return null;
+    if (palabras.length >= 2) {
+      hora = extraerNumero(palabras[0]);
+      minuto = extraerNumero(palabras.slice(1).join(" "));
+    }
+  }
+
   if (!hora || hora < 1 || hora > 12) return null;
   if (minuto === null || minuto < 0 || minuto > 59) return null;
 
@@ -665,11 +599,21 @@ function limpiarTexto(texto) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function normalizarConEspacios(texto) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function nombrePaso(paso) {
   if (paso === "piloto") return "piloto";
-  if (paso === "horaSalida") return "hora de salida";
+  if (paso === "horaSalida") return "hora de salida. Ejemplo: nueve y quince AM";
   if (paso === "salida") return "kilometraje de salida";
-  if (paso === "horaEntrada") return "hora de entrada";
+  if (paso === "horaEntrada") return "hora de entrada. Ejemplo: cinco y treinta PM";
   if (paso === "entrada") return "kilometraje de entrada";
   if (paso === "proyecto") return "proyecto";
   if (paso === "descripcion") return "descripción";
