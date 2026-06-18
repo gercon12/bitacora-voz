@@ -7,22 +7,28 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 18px;
       font-size: 18px;
+      background: #f4f6f8;
+    }
+
+    h2 {
+      text-align: center;
     }
 
     #btnHablar, #btnBorrar, #btnGuardar {
       width: 100%;
-      padding: 22px;
+      padding: 24px;
       font-size: 26px;
-      border-radius: 12px;
-      border: 1px solid #888;
+      border-radius: 14px;
+      border: none;
       margin-bottom: 12px;
       cursor: pointer;
     }
 
     #btnHablar {
-      background-color: #f1f1f1;
+      background-color: #e9ecef;
+      color: #000;
     }
 
     #btnHablar.activo {
@@ -43,20 +49,30 @@
     }
 
     .card {
-      border: 1px solid #ccc;
-      border-radius: 10px;
+      background: white;
+      border-radius: 12px;
       padding: 15px;
       margin-top: 15px;
-      background-color: #f9f9f9;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
 
     .dato {
-      margin: 8px 0;
+      margin: 10px 0;
+      font-size: 20px;
     }
 
-    .actual {
+    .label {
       font-weight: bold;
-      color: #007bff;
+    }
+
+    #estado {
+      font-size: 20px;
+      font-weight: bold;
+      color: #0056b3;
+    }
+
+    #texto {
+      color: #555;
     }
   </style>
 </head>
@@ -74,17 +90,17 @@
 
 <div class="card">
   <h3>Datos capturados</h3>
-  <div class="dato">Piloto: <span id="piloto"></span></div>
-  <div class="dato">Salida: <span id="salida"></span></div>
-  <div class="dato">Entrada: <span id="entrada"></span></div>
-  <div class="dato">Proyecto: <span id="proyecto"></span></div>
-  <div class="dato">Cliente: <span id="cliente"></span></div>
-  <div class="dato">Placa: <span id="placa"></span></div>
+  <div class="dato"><span class="label">Piloto:</span> <span id="piloto"></span></div>
+  <div class="dato"><span class="label">Km salida:</span> <span id="salida"></span></div>
+  <div class="dato"><span class="label">Km entrada:</span> <span id="entrada"></span></div>
+  <div class="dato"><span class="label">Proyecto:</span> <span id="proyecto"></span></div>
+  <div class="dato"><span class="label">Cliente:</span> <span id="cliente"></span></div>
+  <div class="dato"><span class="label">Placa:</span> <span id="placa"></span></div>
 </div>
 
 <div class="card">
   <h3>Último registro del vehículo</h3>
-  <div id="ultimoRegistro">Ingrese la placa para buscar el último registro.</div>
+  <div id="ultimoRegistro">Cuando capture la placa se buscará el último registro.</div>
 </div>
 
 <script>
@@ -172,79 +188,83 @@ function iniciar() {
 }
 
 function procesarPaso(texto) {
-  texto = texto.toLowerCase().trim();
-
+  texto = limpiarTexto(texto);
   let paso = pasos[pasoActual];
-  let valido = false;
 
   if (paso === "piloto") {
-    let pilotoEncontrado = pilotos.find(p => texto.includes(p.clave));
-    if (pilotoEncontrado) {
-      datos.piloto = pilotoEncontrado.nombre;
-      valido = true;
-    } else {
-      mensaje("❌ Piloto no autorizado.");
+    let pilotoEncontrado = pilotos.find(p => texto.includes(limpiarTexto(p.clave)));
+
+    if (!pilotoEncontrado) {
+      mensaje("❌ Piloto no autorizado. Intente nuevamente.");
       return;
     }
+
+    datos.piloto = pilotoEncontrado.nombre;
   }
 
   if (paso === "salida") {
     let numero = extraerNumero(texto);
-    if (numero) {
-      datos.kmSalida = numero;
-      valido = true;
+
+    if (!numero) {
+      mensaje("❌ No se detectó kilometraje de salida.");
+      return;
     }
+
+    datos.kmSalida = numero;
   }
 
   if (paso === "entrada") {
     let numero = extraerNumero(texto);
-    if (numero) {
-      if (parseInt(numero) <= parseInt(datos.kmSalida)) {
-        mensaje("❌ El kilometraje de entrada debe ser mayor que salida.");
-        return;
-      }
-      datos.kmEntrada = numero;
-      valido = true;
+
+    if (!numero) {
+      mensaje("❌ No se detectó kilometraje de entrada.");
+      return;
     }
+
+    if (parseInt(numero) <= parseInt(datos.kmSalida)) {
+      mensaje("❌ El kilometraje de entrada debe ser mayor que salida.");
+      return;
+    }
+
+    datos.kmEntrada = numero;
   }
 
   if (paso === "proyecto") {
     datos.proyecto = texto.toUpperCase().replace(/\s/g, "");
-    valido = true;
   }
 
   if (paso === "cliente") {
     datos.cliente = texto.toUpperCase();
-    valido = true;
   }
 
   if (paso === "placa") {
-    let placaEncontrada = placas.find(p => limpiar(texto).includes(limpiar(p.clave)));
-    if (placaEncontrada) {
-      datos.placa = placaEncontrada.placa;
-      valido = true;
-      consultarUltimoRegistro(datos.placa);
-    } else {
-      mensaje("❌ Placa no autorizada.");
+    let placaEncontrada = placas.find(p => texto.includes(limpiarTexto(p.clave)));
+
+    if (!placaEncontrada) {
+      mensaje("❌ Placa no autorizada. Intente nuevamente.");
       return;
     }
+
+    datos.placa = placaEncontrada.placa;
+    consultarUltimoRegistro(datos.placa);
   }
 
-  if (valido) {
-    actualizarPantalla();
-    pasoActual++;
+  actualizarPantalla();
+  pasoActual++;
 
-    if (pasoActual < pasos.length) {
-      mensaje("✅ Dato capturado. Ahora diga: " + pasos[pasoActual]);
-    } else {
-      mensaje("✅ Todos los datos capturados. Presione Guardar registro.");
-      document.getElementById("btnGuardar").style.display = "block";
-    }
+  if (pasoActual < pasos.length) {
+    mensaje("✅ Dato capturado. Ahora diga: " + pasos[pasoActual]);
+  } else {
+    mensaje("✅ Todos los datos fueron capturados. Revise y presione Guardar registro.");
+    document.getElementById("btnGuardar").style.display = "block";
   }
 }
 
 function borrarUltimo() {
-  if (pasoActual === 0) return;
+  if (pasoActual === 0) {
+    mensaje("No hay datos para borrar.");
+    return;
+  }
 
   if (pasoActual >= pasos.length) {
     pasoActual = pasos.length - 1;
@@ -263,10 +283,21 @@ function borrarUltimo() {
 
   document.getElementById("btnGuardar").style.display = "none";
   actualizarPantalla();
-  mensaje("Dato borrado. Vuelva a decir: " + campo);
+
+  mensaje("🗑️ Dato borrado. Vuelva a decir: " + campo);
 }
 
 function guardarRegistro() {
+  if (!datos.piloto || !datos.kmSalida || !datos.kmEntrada || !datos.proyecto || !datos.cliente || !datos.placa) {
+    mensaje("❌ Faltan datos. Revise antes de guardar.");
+    return;
+  }
+
+  if (parseInt(datos.kmEntrada) <= parseInt(datos.kmSalida)) {
+    mensaje("❌ El kilometraje de entrada debe ser mayor que salida.");
+    return;
+  }
+
   fetch(API_URL, {
     method: "POST",
     mode: "no-cors",
@@ -287,6 +318,7 @@ function guardarRegistro() {
   pasoActual = 0;
   actualizarPantalla();
   document.getElementById("btnGuardar").style.display = "none";
+  document.getElementById("texto").innerHTML = "";
 }
 
 function consultarUltimoRegistro(placa) {
@@ -317,8 +349,12 @@ function extraerNumero(texto) {
   return match ? parseInt(match[0]) : null;
 }
 
-function limpiar(texto) {
-  return texto.toLowerCase().replace(/[^a-z0-9]/g, "");
+function limpiarTexto(texto) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function actualizarPantalla() {
