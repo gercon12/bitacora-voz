@@ -428,7 +428,7 @@ function consultarUltimoRegistro(placa) {
         "No se pudo consultar el último registro.";
     });
 }
-
+/*
 function extraerNumero(texto) {
   let textoLimpio = limpiarTexto(texto);
 
@@ -473,6 +473,7 @@ function extraerNumero(texto) {
     "sesenta": 60
   };
 
+  
   let partes = textoLimpio.split(/y/);
   let total = 0;
 
@@ -484,6 +485,116 @@ function extraerNumero(texto) {
   return total > 0 ? total : null;
 }
 
+*/
+
+function extraerNumero(texto) {
+  let textoLimpio = limpiarTexto(texto);
+
+  let match = textoLimpio.match(/\d+/);
+  if (match) return parseInt(match[0]);
+
+  let mapa = {
+    "cero": 0,
+    "uno": 1,
+    "una": 1,
+    "dos": 2,
+    "tres": 3,
+    "cuatro": 4,
+    "cinco": 5,
+    "seis": 6,
+    "siete": 7,
+    "ocho": 8,
+    "nueve": 9,
+    "diez": 10,
+    "once": 11,
+    "doce": 12,
+    "trece": 13,
+    "catorce": 14,
+    "quince": 15,
+    "dieciseis": 16,
+    "diecisiete": 17,
+    "dieciocho": 18,
+    "diecinueve": 19,
+    "veinte": 20,
+    "veintiuno": 21,
+    "veintidos": 22,
+    "veintitres": 23,
+    "veinticuatro": 24,
+    "veinticinco": 25,
+    "veintiseis": 26,
+    "veintisiete": 27,
+    "veintiocho": 28,
+    "veintinueve": 29,
+    "treinta": 30,
+    "treintaiuno": 31,
+    "treintayuno": 31,
+    "treintaiuna": 31,
+    "treintayuna": 31,
+    "treintaidos": 32,
+    "treintaydos": 32,
+    "treintaitres": 33,
+    "treintaytres": 33,
+    "treintaicuatro": 34,
+    "treintaycuatro": 34,
+    "treintaicinco": 35,
+    "treintaycinco": 35,
+    "treintaiseis": 36,
+    "treintayseis": 36,
+    "treintaisiete": 37,
+    "treintaysiete": 37,
+    "treintaiocho": 38,
+    "treintayocho": 38,
+    "treintainueve": 39,
+    "treintaynueve": 39,
+    "cuarenta": 40,
+    "cuarentaiuno": 41,
+    "cuarentayuno": 41,
+    "cuarentaidos": 42,
+    "cuarentaydos": 42,
+    "cuarentaitres": 43,
+    "cuarentaytres": 43,
+    "cuarentaicuatro": 44,
+    "cuarentaycuatro": 44,
+    "cuarentaicinco": 45,
+    "cuarentaycinco": 45,
+    "cuarentaiseis": 46,
+    "cuarentayseis": 46,
+    "cuarentaisiete": 47,
+    "cuarentaysiete": 47,
+    "cuarentaiocho": 48,
+    "cuarentayocho": 48,
+    "cuarentainueve": 49,
+    "cuarentaynueve": 49,
+    "cincuenta": 50,
+    "cincuentaiuno": 51,
+    "cincuentayuno": 51,
+    "cincuentaidos": 52,
+    "cincuentaydos": 52,
+    "cincuentaitres": 53,
+    "cincuentaytres": 53,
+    "cincuentaicuatro": 54,
+    "cincuentaycuatro": 54,
+    "cincuentaicinco": 55,
+    "cincuentaycinco": 55,
+    "cincuentaiseis": 56,
+    "cincuentayseis": 56,
+    "cincuentaisiete": 57,
+    "cincuentaysiete": 57,
+    "cincuentaiocho": 58,
+    "cincuentayocho": 58,
+    "cincuentainueve": 59,
+    "cincuentaynueve": 59,
+    "sesenta": 60
+  };
+
+  if (mapa[textoLimpio] !== undefined) {
+    return mapa[textoLimpio];
+  }
+
+  return null;
+}
+
+  
 function interpretarHora(texto) {
   let textoLimpio = limpiarTexto(texto);
 
