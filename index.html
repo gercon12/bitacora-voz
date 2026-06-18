@@ -114,7 +114,17 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyj1YEkHL7JwWGiZ44_6xDfZXOU_ADCgoqzIjJIqZXTDop0c_qphMllqUecCbr0YVej/exec";
 
-const pasos = ["piloto", "salida", "entrada", "proyecto", "descripcion", "cliente", "placa"];
+const pasos = [
+  "piloto",
+  "horaSalida",
+  "salida",
+  "horaEntrada",
+  "entrada",
+  "proyecto",
+  "descripcion",
+  "cliente",
+  "placa"
+];
 
 let pasoActual = 0;
 let escuchando = false;
@@ -176,8 +186,9 @@ function iniciar() {
   reconocimiento.onstart = function() {
     escuchando = true;
     boton.classList.add("activo");
-    boton.innerHTML = "🟢 Escuchando " + pasos[pasoActual];
-    estado.innerHTML = "Diga: " + pasos[pasoActual];
+
+    boton.innerHTML = "🟢 Escuchando";
+    estado.innerHTML = "Diga: " + nombrePaso(pasos[pasoActual]);
   };
 
   reconocimiento.onresult = function(event) {
@@ -214,6 +225,17 @@ function procesarPaso(texto) {
     datos.piloto = pilotoEncontrado.nombre;
   }
 
+  if (paso === "horaSalida") {
+    let hora = interpretarHora(texto);
+
+    if (!hora) {
+      mensaje("❌ No pude interpretar la hora de salida. Ejemplo: nueve y treinta am.");
+      return;
+    }
+
+    datos.horaSalida = hora;
+  }
+
   if (paso === "salida") {
     let numero = extraerNumero(texto);
 
@@ -223,7 +245,17 @@ function procesarPaso(texto) {
     }
 
     datos.kmSalida = numero;
-    datos.horaSalida = horaActual();
+  }
+
+  if (paso === "horaEntrada") {
+    let hora = interpretarHora(texto);
+
+    if (!hora) {
+      mensaje("❌ No pude interpretar la hora de entrada. Ejemplo: cinco y quince pm.");
+      return;
+    }
+
+    datos.horaEntrada = hora;
   }
 
   if (paso === "entrada") {
@@ -240,7 +272,6 @@ function procesarPaso(texto) {
     }
 
     datos.kmEntrada = numero;
-    datos.horaEntrada = horaActual();
   }
 
   if (paso === "proyecto") {
@@ -271,7 +302,7 @@ function procesarPaso(texto) {
   pasoActual++;
 
   if (pasoActual < pasos.length) {
-    mensaje("✅ Dato capturado. Ahora diga: " + pasos[pasoActual]);
+    mensaje("✅ Dato capturado. Ahora diga: " + nombrePaso(pasos[pasoActual]));
   } else {
     mensaje("✅ Todos los datos fueron capturados. Revise y presione Guardar registro.");
     document.getElementById("btnGuardar").style.display = "block";
@@ -293,14 +324,10 @@ function borrarUltimo() {
   let campo = pasos[pasoActual];
 
   if (campo === "piloto") datos.piloto = "";
-  if (campo === "salida") {
-    datos.kmSalida = "";
-    datos.horaSalida = "";
-  }
-  if (campo === "entrada") {
-    datos.kmEntrada = "";
-    datos.horaEntrada = "";
-  }
+  if (campo === "horaSalida") datos.horaSalida = "";
+  if (campo === "salida") datos.kmSalida = "";
+  if (campo === "horaEntrada") datos.horaEntrada = "";
+  if (campo === "entrada") datos.kmEntrada = "";
   if (campo === "proyecto") datos.proyecto = "";
   if (campo === "descripcion") datos.descripcion = "";
   if (campo === "cliente") datos.cliente = "";
@@ -309,11 +336,21 @@ function borrarUltimo() {
   document.getElementById("btnGuardar").style.display = "none";
   actualizarPantalla();
 
-  mensaje("🗑️ Dato borrado. Vuelva a decir: " + campo);
+  mensaje("🗑️ Dato borrado. Vuelva a decir: " + nombrePaso(campo));
 }
 
 function guardarRegistro() {
-  if (!datos.piloto || !datos.kmSalida || !datos.kmEntrada || !datos.proyecto || !datos.descripcion || !datos.cliente || !datos.placa) {
+  if (
+    !datos.piloto ||
+    !datos.horaSalida ||
+    !datos.kmSalida ||
+    !datos.horaEntrada ||
+    !datos.kmEntrada ||
+    !datos.proyecto ||
+    !datos.descripcion ||
+    !datos.cliente ||
+    !datos.placa
+  ) {
     mensaje("❌ Faltan datos. Revise antes de guardar.");
     return;
   }
@@ -323,13 +360,13 @@ function guardarRegistro() {
     return;
   }
 
+  mostrarUltimoEnviado();
+
   fetch(API_URL, {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(datos)
   });
-
-  mostrarUltimoEnviado();
 
   mensaje("✅ Registro enviado a Google Sheets.");
 
@@ -393,8 +430,120 @@ function consultarUltimoRegistro(placa) {
 }
 
 function extraerNumero(texto) {
-  let match = texto.match(/\d+/);
-  return match ? parseInt(match[0]) : null;
+  let textoLimpio = limpiarTexto(texto);
+
+  let match = textoLimpio.match(/\d+/);
+  if (match) return parseInt(match[0]);
+
+  let mapa = {
+    "cero": 0,
+    "uno": 1,
+    "una": 1,
+    "dos": 2,
+    "tres": 3,
+    "cuatro": 4,
+    "cinco": 5,
+    "seis": 6,
+    "siete": 7,
+    "ocho": 8,
+    "nueve": 9,
+    "diez": 10,
+    "once": 11,
+    "doce": 12,
+    "trece": 13,
+    "catorce": 14,
+    "quince": 15,
+    "dieciseis": 16,
+    "diecisiete": 17,
+    "dieciocho": 18,
+    "diecinueve": 19,
+    "veinte": 20,
+    "veintiuno": 21,
+    "veintidos": 22,
+    "veintitres": 23,
+    "veinticuatro": 24,
+    "veinticinco": 25,
+    "veintiseis": 26,
+    "veintisiete": 27,
+    "veintiocho": 28,
+    "veintinueve": 29,
+    "treinta": 30,
+    "cuarenta": 40,
+    "cincuenta": 50,
+    "sesenta": 60
+  };
+
+  let partes = textoLimpio.split(/y/);
+  let total = 0;
+
+  for (let p of partes) {
+    p = p.trim();
+    if (mapa[p] !== undefined) total += mapa[p];
+  }
+
+  return total > 0 ? total : null;
+}
+
+function interpretarHora(texto) {
+  let textoLimpio = limpiarTexto(texto);
+
+  let periodo = "";
+
+  if (
+    textoLimpio.includes("am") ||
+    textoLimpio.includes("manana") ||
+    textoLimpio.includes("mañana")
+  ) {
+    periodo = "AM";
+  }
+
+  if (
+    textoLimpio.includes("pm") ||
+    textoLimpio.includes("tarde") ||
+    textoLimpio.includes("noche")
+  ) {
+    periodo = "PM";
+  }
+
+  let numeros = textoLimpio.match(/\d+/g);
+
+  if (numeros && numeros.length >= 2) {
+    let hora = parseInt(numeros[0]);
+    let minuto = parseInt(numeros[1]);
+
+    if (!periodo) return null;
+    if (hora < 1 || hora > 12) return null;
+    if (minuto < 0 || minuto > 59) return null;
+
+    return hora + ":" + String(minuto).padStart(2, "0") + " " + periodo;
+  }
+
+  if (numeros && numeros.length === 1) {
+    let hora = parseInt(numeros[0]);
+
+    if (!periodo) return null;
+    if (hora < 1 || hora > 12) return null;
+
+    return hora + ":00 " + periodo;
+  }
+
+  textoLimpio = textoLimpio
+    .replace("am", "")
+    .replace("pm", "")
+    .replace("delamanana", "")
+    .replace("delatarde", "")
+    .replace("delanoche", "");
+
+  let partes = textoLimpio.split("y");
+
+  let hora = extraerNumero(partes[0] || "");
+  let minuto = partes.length > 1 ? extraerNumero(partes[1]) : 0;
+
+  if (!periodo) return null;
+  if (!hora || hora < 1 || hora > 12) return null;
+  if (minuto === null || minuto < 0 || minuto > 59) return null;
+
+  return hora + ":" + String(minuto).padStart(2, "0") + " " + periodo;
 }
 
 function limpiarTexto(texto) {
@@ -405,13 +554,17 @@ function limpiarTexto(texto) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function horaActual() {
-  let ahora = new Date();
-  return ahora.toLocaleTimeString("es-GT", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
+function nombrePaso(paso) {
+  if (paso === "piloto") return "piloto";
+  if (paso === "horaSalida") return "hora de salida";
+  if (paso === "salida") return "kilometraje de salida";
+  if (paso === "horaEntrada") return "hora de entrada";
+  if (paso === "entrada") return "kilometraje de entrada";
+  if (paso === "proyecto") return "proyecto";
+  if (paso === "descripcion") return "descripción";
+  if (paso === "cliente") return "cliente";
+  if (paso === "placa") return "placa";
+  return paso;
 }
 
 function actualizarPantalla() {
