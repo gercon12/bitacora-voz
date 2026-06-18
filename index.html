@@ -91,11 +91,19 @@
 <div class="card">
   <h3>Datos capturados</h3>
   <div class="dato"><span class="label">Piloto:</span> <span id="piloto"></span></div>
+  <div class="dato"><span class="label">Hora salida:</span> <span id="horaSalida"></span></div>
   <div class="dato"><span class="label">Km salida:</span> <span id="salida"></span></div>
+  <div class="dato"><span class="label">Hora entrada:</span> <span id="horaEntrada"></span></div>
   <div class="dato"><span class="label">Km entrada:</span> <span id="entrada"></span></div>
   <div class="dato"><span class="label">Proyecto:</span> <span id="proyecto"></span></div>
+  <div class="dato"><span class="label">Descripción:</span> <span id="descripcion"></span></div>
   <div class="dato"><span class="label">Cliente:</span> <span id="cliente"></span></div>
   <div class="dato"><span class="label">Placa:</span> <span id="placa"></span></div>
+</div>
+
+<div class="card">
+  <h3>Último registro enviado</h3>
+  <div id="ultimoEnviado">Todavía no se ha enviado ningún registro.</div>
 </div>
 
 <div class="card">
@@ -106,16 +114,20 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyj1YEkHL7JwWGiZ44_6xDfZXOU_ADCgoqzIjJIqZXTDop0c_qphMllqUecCbr0YVej/exec";
 
-const pasos = ["piloto", "salida", "entrada", "proyecto", "cliente", "placa"];
+const pasos = ["piloto", "salida", "entrada", "proyecto", "descripcion", "cliente", "placa"];
+
 let pasoActual = 0;
 let escuchando = false;
 let reconocimiento;
 
 let datos = {
   piloto: "",
+  horaSalida: "",
   kmSalida: "",
+  horaEntrada: "",
   kmEntrada: "",
   proyecto: "",
+  descripcion: "",
   cliente: "",
   placa: ""
 };
@@ -188,11 +200,11 @@ function iniciar() {
 }
 
 function procesarPaso(texto) {
-  texto = limpiarTexto(texto);
+  let textoLimpio = limpiarTexto(texto);
   let paso = pasos[pasoActual];
 
   if (paso === "piloto") {
-    let pilotoEncontrado = pilotos.find(p => texto.includes(limpiarTexto(p.clave)));
+    let pilotoEncontrado = pilotos.find(p => textoLimpio.includes(limpiarTexto(p.clave)));
 
     if (!pilotoEncontrado) {
       mensaje("❌ Piloto no autorizado. Intente nuevamente.");
@@ -211,6 +223,7 @@ function procesarPaso(texto) {
     }
 
     datos.kmSalida = numero;
+    datos.horaSalida = horaActual();
   }
 
   if (paso === "entrada") {
@@ -227,10 +240,15 @@ function procesarPaso(texto) {
     }
 
     datos.kmEntrada = numero;
+    datos.horaEntrada = horaActual();
   }
 
   if (paso === "proyecto") {
-    datos.proyecto = texto.toUpperCase().replace(/\s/g, "");
+    datos.proyecto = limpiarTexto(texto).toUpperCase();
+  }
+
+  if (paso === "descripcion") {
+    datos.descripcion = texto.toUpperCase();
   }
 
   if (paso === "cliente") {
@@ -238,7 +256,7 @@ function procesarPaso(texto) {
   }
 
   if (paso === "placa") {
-    let placaEncontrada = placas.find(p => texto.includes(limpiarTexto(p.clave)));
+    let placaEncontrada = placas.find(p => textoLimpio.includes(limpiarTexto(p.clave)));
 
     if (!placaEncontrada) {
       mensaje("❌ Placa no autorizada. Intente nuevamente.");
@@ -275,9 +293,16 @@ function borrarUltimo() {
   let campo = pasos[pasoActual];
 
   if (campo === "piloto") datos.piloto = "";
-  if (campo === "salida") datos.kmSalida = "";
-  if (campo === "entrada") datos.kmEntrada = "";
+  if (campo === "salida") {
+    datos.kmSalida = "";
+    datos.horaSalida = "";
+  }
+  if (campo === "entrada") {
+    datos.kmEntrada = "";
+    datos.horaEntrada = "";
+  }
   if (campo === "proyecto") datos.proyecto = "";
+  if (campo === "descripcion") datos.descripcion = "";
   if (campo === "cliente") datos.cliente = "";
   if (campo === "placa") datos.placa = "";
 
@@ -288,7 +313,7 @@ function borrarUltimo() {
 }
 
 function guardarRegistro() {
-  if (!datos.piloto || !datos.kmSalida || !datos.kmEntrada || !datos.proyecto || !datos.cliente || !datos.placa) {
+  if (!datos.piloto || !datos.kmSalida || !datos.kmEntrada || !datos.proyecto || !datos.descripcion || !datos.cliente || !datos.placa) {
     mensaje("❌ Faltan datos. Revise antes de guardar.");
     return;
   }
@@ -304,13 +329,18 @@ function guardarRegistro() {
     body: JSON.stringify(datos)
   });
 
+  mostrarUltimoEnviado();
+
   mensaje("✅ Registro enviado a Google Sheets.");
 
   datos = {
     piloto: "",
+    horaSalida: "",
     kmSalida: "",
+    horaEntrada: "",
     kmEntrada: "",
     proyecto: "",
+    descripcion: "",
     cliente: "",
     placa: ""
   };
@@ -319,6 +349,20 @@ function guardarRegistro() {
   actualizarPantalla();
   document.getElementById("btnGuardar").style.display = "none";
   document.getElementById("texto").innerHTML = "";
+}
+
+function mostrarUltimoEnviado() {
+  document.getElementById("ultimoEnviado").innerHTML =
+    "Piloto: " + datos.piloto + "<br>" +
+    "Hora salida: " + datos.horaSalida + "<br>" +
+    "Km salida: " + datos.kmSalida + "<br>" +
+    "Hora entrada: " + datos.horaEntrada + "<br>" +
+    "Km entrada: " + datos.kmEntrada + "<br>" +
+    "Km recorridos: " + (Number(datos.kmEntrada) - Number(datos.kmSalida)) + "<br>" +
+    "Proyecto: " + datos.proyecto + "<br>" +
+    "Descripción: " + datos.descripcion + "<br>" +
+    "Cliente: " + datos.cliente + "<br>" +
+    "Placa: " + datos.placa;
 }
 
 function consultarUltimoRegistro(placa) {
@@ -331,11 +375,15 @@ function consultarUltimoRegistro(placa) {
         document.getElementById("ultimoRegistro").innerHTML =
           "Placa: " + data.placa + "<br>" +
           "Último piloto: " + data.piloto + "<br>" +
+          "Hora salida: " + data.horaSalida + "<br>" +
           "Km salida: " + data.kmSalida + "<br>" +
+          "Hora entrada: " + data.horaEntrada + "<br>" +
           "Km entrada: " + data.kmEntrada + "<br>" +
+          "Km recorridos: " + data.kmRecorridos + "<br>" +
           "Proyecto: " + data.proyecto + "<br>" +
+          "Descripción: " + data.descripcion + "<br>" +
           "Cliente: " + data.cliente + "<br>" +
-          "Fecha: " + data.fecha + " " + data.hora;
+          "Fecha registro: " + data.fecha + " " + data.hora;
       }
     })
     .catch(() => {
@@ -357,11 +405,23 @@ function limpiarTexto(texto) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function horaActual() {
+  let ahora = new Date();
+  return ahora.toLocaleTimeString("es-GT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 function actualizarPantalla() {
   document.getElementById("piloto").innerHTML = datos.piloto;
+  document.getElementById("horaSalida").innerHTML = datos.horaSalida;
   document.getElementById("salida").innerHTML = datos.kmSalida;
+  document.getElementById("horaEntrada").innerHTML = datos.horaEntrada;
   document.getElementById("entrada").innerHTML = datos.kmEntrada;
   document.getElementById("proyecto").innerHTML = datos.proyecto;
+  document.getElementById("descripcion").innerHTML = datos.descripcion;
   document.getElementById("cliente").innerHTML = datos.cliente;
   document.getElementById("placa").innerHTML = datos.placa;
 }
