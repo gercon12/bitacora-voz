@@ -16,13 +16,13 @@
       padding: 22px;
       font-size: 26px;
       border-radius: 12px;
-      margin: 8px 0;
-      border: 1px solid #999;
+      border: 1px solid #888;
+      margin-bottom: 12px;
       cursor: pointer;
     }
 
     #btnHablar {
-      background-color: #f2f2f2;
+      background-color: #f1f1f1;
     }
 
     #btnHablar.activo {
@@ -32,25 +32,25 @@
     }
 
     #btnBorrar {
-      background-color: #ffc107;
+      background-color: #dc3545;
+      color: white;
     }
 
     #btnGuardar {
       background-color: #007bff;
       color: white;
-      font-weight: bold;
+      display: none;
     }
 
     .card {
       border: 1px solid #ccc;
       border-radius: 10px;
-      padding: 12px;
+      padding: 15px;
       margin-top: 15px;
       background-color: #f9f9f9;
     }
 
     .dato {
-      font-size: 20px;
       margin: 8px 0;
     }
 
@@ -61,45 +61,39 @@
   </style>
 </head>
 
-<body onload="cargarUltimoRegistro()">
+<body>
 
 <h2>Bitácora por voz</h2>
 
 <button id="btnHablar" onclick="iniciar()">🎤 Hablar</button>
-<button id="btnBorrar" onclick="borrarDato()">🧹 Borrar dato actual</button>
-<button id="btnGuardar" onclick="guardarRegistro()">💾 Guardar registro</button>
+<button id="btnBorrar" onclick="borrarUltimo()">🗑️ Borrar último dato</button>
+<button id="btnGuardar" onclick="guardarRegistro()">✅ Guardar registro</button>
 
-<p id="estado">Presione Hablar para iniciar.</p>
+<p id="estado">Presione Hablar para capturar piloto.</p>
 <p id="texto"></p>
 
 <div class="card">
-  <h3>Dato solicitado</h3>
-  <p id="pasoActual" class="actual">Piloto</p>
-</div>
-
-<div class="card">
   <h3>Datos capturados</h3>
-  <p class="dato">Piloto: <span id="piloto"></span></p>
-  <p class="dato">Salida: <span id="kmSalida"></span></p>
-  <p class="dato">Entrada: <span id="kmEntrada"></span></p>
-  <p class="dato">Proyecto: <span id="proyecto"></span></p>
-  <p class="dato">Cliente: <span id="cliente"></span></p>
-  <p class="dato">Placa: <span id="placa"></span></p>
+  <div class="dato">Piloto: <span id="piloto"></span></div>
+  <div class="dato">Salida: <span id="salida"></span></div>
+  <div class="dato">Entrada: <span id="entrada"></span></div>
+  <div class="dato">Proyecto: <span id="proyecto"></span></div>
+  <div class="dato">Cliente: <span id="cliente"></span></div>
+  <div class="dato">Placa: <span id="placa"></span></div>
 </div>
 
 <div class="card">
-  <h3>Último registro guardado</h3>
-  <p id="ultimoRegistro">Cargando...</p>
+  <h3>Último registro del vehículo</h3>
+  <div id="ultimoRegistro">Ingrese la placa para buscar el último registro.</div>
 </div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyj1YEkHL7JwWGiZ44_6xDfZXOU_ADCgoqzIjJIqZXTDop0c_qphMllqUecCbr0YVej/exec";
 
-let reconocimiento;
+const pasos = ["piloto", "salida", "entrada", "proyecto", "cliente", "placa"];
+let pasoActual = 0;
 let escuchando = false;
-
-let pasos = ["piloto", "kmSalida", "kmEntrada", "proyecto", "cliente", "placa"];
-let pasoIndex = 0;
+let reconocimiento;
 
 let datos = {
   piloto: "",
@@ -111,19 +105,25 @@ let datos = {
 };
 
 const pilotos = [
-  "Erick Amadeo Ochoa Gramajo",
-  "Esteban Samuel Ochoa Gramajo",
-  "Jostin Ricardo Ajcot Carias",
-  "Pedro Domingo Culajay Son",
-  "Byron Gabriel Dionicio",
-  "Diego Rene Virula Lucero",
-  "German Contreras Jacinto"
+  { clave: "erick", nombre: "Erick Amadeo Ochoa Gramajo" },
+  { clave: "esteban", nombre: "Esteban Samuel Ochoa Gramajo" },
+  { clave: "jostin", nombre: "Jostin Ricardo Ajcot Carias" },
+  { clave: "ricardo", nombre: "Jostin Ricardo Ajcot Carias" },
+  { clave: "pedro", nombre: "Pedro Domingo Culajay Son" },
+  { clave: "byron", nombre: "Byron Gabriel Dionicio" },
+  { clave: "diego", nombre: "Diego Rene Virula Lucero" },
+  { clave: "german", nombre: "German Contreras Jacinto" },
+  { clave: "germán", nombre: "German Contreras Jacinto" }
 ];
 
 const placas = [
-  "P168GVJ",
-  "P313KHZ",
-  "C0998BXQ"
+  { clave: "168", placa: "P168GVJ" },
+  { clave: "p168", placa: "P168GVJ" },
+  { clave: "313", placa: "P313KHZ" },
+  { clave: "p313", placa: "P313KHZ" },
+  { clave: "0998", placa: "C0998BXQ" },
+  { clave: "998", placa: "C0998BXQ" },
+  { clave: "c0998", placa: "C0998BXQ" }
 ];
 
 function iniciar() {
@@ -135,8 +135,8 @@ function iniciar() {
     return;
   }
 
-  if (!('webkitSpeechRecognition' in window)) {
-    estado.innerHTML = "Este navegador no soporta reconocimiento de voz. Use Google Chrome.";
+  if (!("webkitSpeechRecognition" in window)) {
+    estado.innerHTML = "Use Google Chrome. Este navegador no soporta reconocimiento de voz.";
     return;
   }
 
@@ -148,14 +148,14 @@ function iniciar() {
   reconocimiento.onstart = function() {
     escuchando = true;
     boton.classList.add("activo");
-    boton.innerHTML = "🟢 Escuchando...";
-    estado.innerHTML = "Diga el dato solicitado: " + nombrePasoActual();
+    boton.innerHTML = "🟢 Escuchando " + pasos[pasoActual];
+    estado.innerHTML = "Diga: " + pasos[pasoActual];
   };
 
   reconocimiento.onresult = function(event) {
     let texto = event.results[0][0].transcript;
     document.getElementById("texto").innerHTML = "Texto reconocido: " + texto;
-    procesarDato(texto);
+    procesarPaso(texto);
   };
 
   reconocimiento.onerror = function(event) {
@@ -171,131 +171,110 @@ function iniciar() {
   reconocimiento.start();
 }
 
-function procesarDato(texto) {
-  texto = limpiarTexto(texto);
-  let paso = pasos[pasoIndex];
+function procesarPaso(texto) {
+  texto = texto.toLowerCase().trim();
+
+  let paso = pasos[pasoActual];
+  let valido = false;
 
   if (paso === "piloto") {
-    datos.piloto = reconocerPiloto(texto);
+    let pilotoEncontrado = pilotos.find(p => texto.includes(p.clave));
+    if (pilotoEncontrado) {
+      datos.piloto = pilotoEncontrado.nombre;
+      valido = true;
+    } else {
+      mensaje("❌ Piloto no autorizado.");
+      return;
+    }
   }
 
-  if (paso === "kmSalida") {
-    datos.kmSalida = extraerNumero(texto);
+  if (paso === "salida") {
+    let numero = extraerNumero(texto);
+    if (numero) {
+      datos.kmSalida = numero;
+      valido = true;
+    }
   }
 
-  if (paso === "kmEntrada") {
-    datos.kmEntrada = extraerNumero(texto);
+  if (paso === "entrada") {
+    let numero = extraerNumero(texto);
+    if (numero) {
+      if (parseInt(numero) <= parseInt(datos.kmSalida)) {
+        mensaje("❌ El kilometraje de entrada debe ser mayor que salida.");
+        return;
+      }
+      datos.kmEntrada = numero;
+      valido = true;
+    }
   }
 
   if (paso === "proyecto") {
-    datos.proyecto = texto.toUpperCase();
+    datos.proyecto = texto.toUpperCase().replace(/\s/g, "");
+    valido = true;
   }
 
   if (paso === "cliente") {
-    datos.cliente = capitalizar(texto);
+    datos.cliente = texto.toUpperCase();
+    valido = true;
   }
 
   if (paso === "placa") {
-    datos.placa = reconocerPlaca(texto);
+    let placaEncontrada = placas.find(p => limpiar(texto).includes(limpiar(p.clave)));
+    if (placaEncontrada) {
+      datos.placa = placaEncontrada.placa;
+      valido = true;
+      consultarUltimoRegistro(datos.placa);
+    } else {
+      mensaje("❌ Placa no autorizada.");
+      return;
+    }
   }
 
-  actualizarPantalla();
+  if (valido) {
+    actualizarPantalla();
+    pasoActual++;
 
-  if (pasoIndex < pasos.length - 1) {
-    pasoIndex++;
-    document.getElementById("estado").innerHTML =
-      "Dato capturado. Ahora diga: " + nombrePasoActual();
+    if (pasoActual < pasos.length) {
+      mensaje("✅ Dato capturado. Ahora diga: " + pasos[pasoActual]);
+    } else {
+      mensaje("✅ Todos los datos capturados. Presione Guardar registro.");
+      document.getElementById("btnGuardar").style.display = "block";
+    }
+  }
+}
+
+function borrarUltimo() {
+  if (pasoActual === 0) return;
+
+  if (pasoActual >= pasos.length) {
+    pasoActual = pasos.length - 1;
   } else {
-    document.getElementById("estado").innerHTML =
-      "Todos los datos fueron capturados. Presione Guardar registro.";
+    pasoActual--;
   }
 
-  actualizarPaso();
-}
+  let campo = pasos[pasoActual];
 
-function reconocerPiloto(texto) {
-  texto = quitarAcentos(texto.toLowerCase());
+  if (campo === "piloto") datos.piloto = "";
+  if (campo === "salida") datos.kmSalida = "";
+  if (campo === "entrada") datos.kmEntrada = "";
+  if (campo === "proyecto") datos.proyecto = "";
+  if (campo === "cliente") datos.cliente = "";
+  if (campo === "placa") datos.placa = "";
 
-  for (let p of pilotos) {
-    let nombre = quitarAcentos(p.toLowerCase());
-
-    if (nombre.includes(texto) || texto.includes(nombre.split(" ")[0])) {
-      return p;
-    }
-  }
-
-  return capitalizar(texto);
-}
-
-function reconocerPlaca(texto) {
-  texto = texto.toUpperCase().replace(/\s/g, "");
-
-  for (let placa of placas) {
-    if (placa.includes(texto) || texto.includes(placa)) {
-      return placa;
-    }
-  }
-
-  return texto;
-}
-
-function extraerNumero(texto) {
-  let numero = texto.match(/\d+/);
-  return numero ? parseInt(numero[0]) : "";
-}
-
-function borrarDato() {
-  let paso = pasos[pasoIndex];
-  datos[paso] = "";
+  document.getElementById("btnGuardar").style.display = "none";
   actualizarPantalla();
-
-  document.getElementById("estado").innerHTML =
-    "Dato borrado. Vuelva a decir: " + nombrePasoActual();
+  mensaje("Dato borrado. Vuelva a decir: " + campo);
 }
 
 function guardarRegistro() {
-  if (!datos.piloto || !datos.kmSalida || !datos.kmEntrada || !datos.proyecto || !datos.cliente || !datos.placa) {
-    document.getElementById("estado").innerHTML =
-      "Faltan datos. Revise antes de guardar.";
-    return;
-  }
-
   fetch(API_URL, {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(datos)
   });
 
-  document.getElementById("estado").innerHTML =
-    "✅ Registro enviado a Google Sheets";
+  mensaje("✅ Registro enviado a Google Sheets.");
 
-  reiniciarFormulario();
-
-  setTimeout(cargarUltimoRegistro, 2500);
-}
-
-function cargarUltimoRegistro() {
-  window.recibirUltimoRegistro = function(data) {
-    if (!data || !data.piloto) {
-      document.getElementById("ultimoRegistro").innerHTML = "No hay registros.";
-      return;
-    }
-
-    document.getElementById("ultimoRegistro").innerHTML =
-      "Piloto: " + data.piloto + "<br>" +
-      "Km salida: " + data.kmSalida + "<br>" +
-      "Km entrada: " + data.kmEntrada + "<br>" +
-      "Proyecto: " + data.proyecto + "<br>" +
-      "Cliente: " + data.cliente + "<br>" +
-      "Placa: " + data.placa;
-  };
-
-  let script = document.createElement("script");
-  script.src = API_URL + "?action=ultimo&callback=recibirUltimoRegistro";
-  document.body.appendChild(script);
-}
-
-function reiniciarFormulario() {
   datos = {
     piloto: "",
     kmSalida: "",
@@ -305,62 +284,55 @@ function reiniciarFormulario() {
     placa: ""
   };
 
-  pasoIndex = 0;
+  pasoActual = 0;
   actualizarPantalla();
-  actualizarPaso();
+  document.getElementById("btnGuardar").style.display = "none";
+}
+
+function consultarUltimoRegistro(placa) {
+  fetch(API_URL + "?accion=ultimo&placa=" + encodeURIComponent(placa))
+    .then(r => r.json())
+    .then(data => {
+      if (data.mensaje) {
+        document.getElementById("ultimoRegistro").innerHTML = data.mensaje;
+      } else {
+        document.getElementById("ultimoRegistro").innerHTML =
+          "Placa: " + data.placa + "<br>" +
+          "Último piloto: " + data.piloto + "<br>" +
+          "Km salida: " + data.kmSalida + "<br>" +
+          "Km entrada: " + data.kmEntrada + "<br>" +
+          "Proyecto: " + data.proyecto + "<br>" +
+          "Cliente: " + data.cliente + "<br>" +
+          "Fecha: " + data.fecha + " " + data.hora;
+      }
+    })
+    .catch(() => {
+      document.getElementById("ultimoRegistro").innerHTML =
+        "No se pudo consultar el último registro.";
+    });
+}
+
+function extraerNumero(texto) {
+  let match = texto.match(/\d+/);
+  return match ? parseInt(match[0]) : null;
+}
+
+function limpiar(texto) {
+  return texto.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function actualizarPantalla() {
   document.getElementById("piloto").innerHTML = datos.piloto;
-  document.getElementById("kmSalida").innerHTML = datos.kmSalida;
-  document.getElementById("kmEntrada").innerHTML = datos.kmEntrada;
+  document.getElementById("salida").innerHTML = datos.kmSalida;
+  document.getElementById("entrada").innerHTML = datos.kmEntrada;
   document.getElementById("proyecto").innerHTML = datos.proyecto;
   document.getElementById("cliente").innerHTML = datos.cliente;
   document.getElementById("placa").innerHTML = datos.placa;
 }
 
-function actualizarPaso() {
-  document.getElementById("pasoActual").innerHTML = nombrePasoActual();
+function mensaje(txt) {
+  document.getElementById("estado").innerHTML = txt;
 }
-
-function nombrePasoActual() {
-  let nombres = {
-    piloto: "Piloto",
-    kmSalida: "Kilometraje de salida",
-    kmEntrada: "Kilometraje de entrada",
-    proyecto: "Proyecto",
-    cliente: "Cliente",
-    placa: "Placa"
-  };
-
-  return nombres[pasos[pasoIndex]];
-}
-
-function limpiarTexto(texto) {
-  return texto
-    .replace("kilómetros", "")
-    .replace("kilometros", "")
-    .replace("placa", "")
-    .replace("piloto", "")
-    .replace("salida", "")
-    .replace("entrada", "")
-    .replace("proyecto", "")
-    .replace("cliente", "")
-    .trim();
-}
-
-function capitalizar(texto) {
-  return texto
-    .toLowerCase()
-    .replace(/\b\w/g, letra => letra.toUpperCase());
-}
-
-function quitarAcentos(texto) {
-  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-actualizarPantalla();
-actualizarPaso();
 </script>
 
 </body>
